@@ -8,27 +8,40 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 const Tab = createBottomTabNavigator();
 
 // --- Timer Screen ---
+//is timer running? Yes or no 
+//elapsed = how many seconds have passed since the timer started
+//stores a reference to the interval created by setInterva; so we can pause/play
 const TimerScreen = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef(null);
 
+//start timer
   const startTimer = () => {
     if (isTimerRunning) return;
     setIsTimerRunning(true);
     intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
   };
 
+//pause timer
   const pauseTimer = () => {
     setIsTimerRunning(false);
     clearInterval(intervalRef.current);
   };
 
+  //Stop timer = ends session and saves data to history (not implemented yet)
+  const stopTimer=() => {
+    setIsTimerRunning(false);
+    clearInterval(intervalRef.current);
+  };
+  
+    //reset timer
   const resetTimer = () => {
     setIsTimerRunning(false);
     clearInterval(intervalRef.current);
     setElapsed(0);
   };
+  
 
   return (
     <View style={styles.container}>
@@ -36,7 +49,8 @@ const TimerScreen = () => {
       <View style={styles.buttonRow}>
         <Button mode="contained" onPress={startTimer} style={styles.button}>Start</Button>
         <Button mode="contained" onPress={pauseTimer} style={styles.button}>Pause</Button>
-        <Button mode="contained" onPress={resetTimer} style={styles.button}>Reset</Button>
+        <Button mode="contained" onPress={stopTimer} style={styles.button}>End Session</Button>
+           <Button mode="contained" onPress={resetTimer} style={styles.button}>Reset</Button>
       </View>
     </View>
   );
