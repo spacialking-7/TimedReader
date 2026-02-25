@@ -232,7 +232,7 @@ const ProfileScreen = ({ sessions }) => {
   );
 };
 
-// -------------------- MOTIVATION SCREEN --------------------
+// -------------------- MOTIVATION FAB --------------------
 const MotivationScreen = () => {
   const quotes = [
     "Reading is dreaming with open eyes.",
