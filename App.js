@@ -16,76 +16,50 @@ const Tab = createBottomTabNavigator();
 
 // --- Timer Screen ---
 const TimerScreen = () => {
-  //an array of reading sessions
-  const [sessions, setSessions] = useState([]);
-  //notes about the session, to be saved with the session data (not implemented yet)
-  const [notesInput, setNotesInput] = useState("");
-
-  //is timer running? Yes or no
-  //elapsed = how many seconds have passed since the timer started
-  //stores a reference to the interval created by setInterva; so we can pause/play
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [notesInput, setNotesInput] = useState("");
+  const [sessions, setSessions] = useState([]);
   const intervalRef = useRef(null);
 
-  //start timer
-  const startTimer = () => {
-    if (isTimerRunning) return;
-    setIsTimerRunning(true);
-    intervalRef.current = setInterval(
-      () => setElapsed((prev) => prev + 1),
-      1000,
-    );
-  };
+  useEffect(() => {
+    if (isTimerRunning) {
+      intervalRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    } else {
+      clearInterval(intervalRef.current);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isTimerRunning]);
 
-  //pause timer
-  const pauseTimer = () => {
-    setIsTimerRunning(false);
-    clearInterval(intervalRef.current);
-  };
-
-  //End session
+  const startTimer = () => setIsTimerRunning(true);
+  const pauseTimer = () => setIsTimerRunning(false);
 
   const endSession = () => {
-    //Stop timer
     setIsTimerRunning(false);
-    clearInterval(intervalRef.current);
-
-    //if the time is reset to 0, don't save a session
     if (elapsed === 0) return;
 
-    // Create a new session
     const newSession = {
-      id: Date.now().toString(), // unique ID
-      duration: elapsed, // seconds
-      notes: notesInput, // optional note
-      date: new Date().toLocaleDateString(), // current date
+      id: Date.now().toString(),
+      duration: elapsed,
+      notes: notesInput,
+      date: new Date().toLocaleDateString(),
     };
 
-    // Save session
     setSessions([newSession, ...sessions]);
-
-    // Reset timer and note input
     setElapsed(0);
     setNotesInput("");
   };
-  
- return (
+
+  return (
     <View style={styles.container}>
       <Text style={styles.timerText}>
-        {Math.floor(elapsed / 60)}:
-        {elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}
+        {Math.floor(elapsed / 60)}:{elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}
       </Text>
+
       <View style={styles.buttonRow}>
-        <Button mode="contained" onPress={startTimer} style={styles.button}>
-          Start
-        </Button>
-        <Button mode="contained" onPress={pauseTimer} style={styles.button}>
-          Pause
-        </Button>
-        <Button mode="contained" onPress={endSession} style={styles.button}>
-          Stop & Save
-        </Button>
+        <Button mode="contained" onPress={startTimer} style={styles.button}>Start</Button>
+        <Button mode="contained" onPress={pauseTimer} style={styles.button}>Pause</Button>
+        <Button mode="contained" onPress={endSession} style={styles.button}>Stop & Save</Button>
       </View>
     </View>
   );
