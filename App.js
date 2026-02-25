@@ -1,6 +1,6 @@
 // App.js
 import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, TextInput, ScrollView } from "react-native";
+import { View, StyleSheet, TextInput, ScrollView, Animated } from "react-native";
 import {
   Provider as PaperProvider,
   Text,
@@ -13,8 +13,10 @@ import {
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
 
 // -------------------- MAIN APP --------------------
 export default function App() {
@@ -24,24 +26,27 @@ export default function App() {
     <PaperProvider>
       <NavigationContainer>
         <Drawer.Navigator
-          screenOptions={{
-            header: (props) => <CustomAppBar {...props} />,
-          }}
+          screenOptions={{ header: (props) => <CustomAppBar {...props} /> }}
         >
-          <Drawer.Screen name="Timer">
-            {(props) => <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />}
+          <Drawer.Screen name="Home">
+            {() => (
+              <Tab.Navigator>
+                <Tab.Screen name="Timer">
+                  {(props) => <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />}
+                </Tab.Screen>
+                <Tab.Screen name="History">
+                  {(props) => <HistoryScreen {...props} sessions={sessions} />}
+                </Tab.Screen>
+                <Tab.Screen name="Profile">
+                  {(props) => <ProfileScreen {...props} sessions={sessions} />}
+                </Tab.Screen>
+              </Tab.Navigator>
+            )}
           </Drawer.Screen>
-
-          <Drawer.Screen name="History">
-            {(props) => <HistoryScreen {...props} sessions={sessions} />}
-          </Drawer.Screen>
-
-          <Drawer.Screen name="Profile">
-            {(props) => <ProfileScreen {...props} sessions={sessions} />}
-          </Drawer.Screen>
-
           <Drawer.Screen name="Motivation" component={MotivationScreen} />
-          <Drawer.Screen name="Achievements" component={AchievementsScreen} />
+          <Drawer.Screen name="Achievements">
+            {() => <AchievementsScreen sessions={sessions} />}
+          </Drawer.Screen>
         </Drawer.Navigator>
       </NavigationContainer>
     </PaperProvider>
@@ -49,15 +54,13 @@ export default function App() {
 }
 
 // -------------------- CUSTOM APP BAR --------------------
-const CustomAppBar = ({ navigation, back, route, options }) => {
-  return (
-    <Appbar.Header>
-      {back ? <Appbar.BackAction onPress={navigation.goBack} /> : null}
-      <Appbar.Content title={route.name} />
-      {!back && <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} />}
-    </Appbar.Header>
-  );
-};
+const CustomAppBar = ({ navigation, back, route }) => (
+  <Appbar.Header>
+    {back ? <Appbar.BackAction onPress={navigation.goBack} /> : null}
+    <Appbar.Content title={route.name} />
+    {!back && <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} />}
+  </Appbar.Header>
+);
 
 // -------------------- TIMER SCREEN --------------------
 const TimerScreen = ({ sessions, setSessions }) => {
@@ -76,6 +79,16 @@ const TimerScreen = ({ sessions, setSessions }) => {
     "Knowledge is power.",
     "Today’s reading is tomorrow’s wisdom.",
   ];
+
+  // FAB animation
+  const fabAnim = useRef(new Animated.Value(0)).current;
+
+  const animateFAB = () => {
+    Animated.sequence([
+      Animated.timing(fabAnim, { toValue: -20, duration: 200, useNativeDriver: true }),
+      Animated.timing(fabAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start();
+  };
 
   useEffect(() => {
     if (isTimerRunning) {
@@ -97,7 +110,6 @@ const TimerScreen = ({ sessions, setSessions }) => {
       notes: notesInput,
       date: new Date().toLocaleDateString(),
     };
-
     setSessions([newSession, ...sessions]);
     setElapsed(0);
     setNotesInput("");
@@ -119,15 +131,9 @@ const TimerScreen = ({ sessions, setSessions }) => {
       />
 
       <View style={styles.buttonRow}>
-        <Button mode="contained" onPress={startTimer} style={styles.button}>
-          Start
-        </Button>
-        <Button mode="contained" onPress={pauseTimer} style={styles.button}>
-          Pause
-        </Button>
-        <Button mode="contained" onPress={endSession} style={styles.button}>
-          Stop & Save
-        </Button>
+        <Button mode="contained" onPress={startTimer} style={styles.button}>Start</Button>
+        <Button mode="contained" onPress={pauseTimer} style={styles.button}>Pause</Button>
+        <Button mode="contained" onPress={endSession} style={styles.button}>Stop & Save</Button>
       </View>
 
       {savedMessage ? <Text style={styles.savedText}>{savedMessage}</Text> : null}
@@ -140,7 +146,9 @@ const TimerScreen = ({ sessions, setSessions }) => {
         </Card>
       )}
 
-      <FAB icon="lightbulb" style={styles.fab} onPress={() => setShowQuote(!showQuote)} />
+      <Animated.View style={{ transform: [{ translateY: fabAnim }] }}>
+        <FAB icon="lightbulb" style={styles.fab} onPress={() => { setShowQuote(!showQuote); animateFAB(); }} />
+      </Animated.View>
     </ScrollView>
   );
 };
@@ -181,6 +189,14 @@ const ProfileScreen = ({ sessions }) => {
   const totalSeconds = sessions.reduce((total, s) => total + s.duration, 0);
   const totalHours = Math.floor(totalSeconds / 3600);
   const totalSessions = sessions.length;
+
+  // Streak tracking: assume a session today = +1 day streak
+  const [streak, setStreak] = useState(0);
+  useEffect(() => {
+    const today = new Date().toLocaleDateString();
+    if (sessions[0]?.date === today) setStreak((prev) => prev + 1);
+  }, [sessions]);
+
   const dailyGoalHours = 1;
   const progress = Math.min(totalHours / dailyGoalHours, 1);
 
@@ -188,6 +204,7 @@ const ProfileScreen = ({ sessions }) => {
     <ScrollView contentContainerStyle={styles.container}>
       <Avatar.Icon size={100} icon="book" />
       <Text style={{ fontSize: 22, marginVertical: 10 }}>Reader Profile</Text>
+      <Text>🔥 Current Streak: {streak} days</Text>
 
       <Card style={styles.card}>
         <Card.Content>
@@ -258,42 +275,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
   },
-  timerText: {
-    fontSize: 48,
-    marginVertical: 32,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  card: {
-    width: "100%",
-    marginVertical: 8,
-  },
-  input: {
-    width: "100%",
-    borderColor: "#ccc",
-    borderWidth: 1,
-    padding: 8,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  savedText: {
-    color: "green",
-    marginTop: 16,
-  },
-  historyTitle: {
-    fontSize: 22,
-    marginBottom: 16,
-  },
-  fab: {
-    position: "absolute",
-    right: 16,
-    bottom: 16,
-  },
+  timerText: { fontSize: 48, marginVertical: 32 },
+  buttonRow: { flexDirection: "row", justifyContent: "space-between", width: "100%" },
+  button: { flex: 1, marginHorizontal: 4 },
+  card: { width: "100%", marginVertical: 8 },
+  input: { width: "100%", borderColor: "#ccc", borderWidth: 1, padding: 8, marginBottom: 16, borderRadius: 8 },
+  savedText: { color: "green", marginTop: 16 },
+  historyTitle: { fontSize: 22, marginBottom: 16 },
+  fab: { position: "absolute", right: 16, bottom: 16 },
 });
