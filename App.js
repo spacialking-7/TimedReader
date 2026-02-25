@@ -6,16 +6,17 @@ import {
   Text,
   Button,
   Card,
+  FAB,
+  Avatar,
+  ProgressBar,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 const Tab = createBottomTabNavigator();
 
-
 // -------------------- MAIN APP --------------------
 export default function App() {
-  // 🔥 SHARED STATE (lives in parent)
   const [sessions, setSessions] = useState([]);
 
   return (
@@ -23,7 +24,7 @@ export default function App() {
       <NavigationContainer>
         <Tab.Navigator>
           <Tab.Screen name="Timer">
-            {props => (
+            {(props) => (
               <TimerScreen
                 {...props}
                 sessions={sessions}
@@ -33,21 +34,17 @@ export default function App() {
           </Tab.Screen>
 
           <Tab.Screen name="History">
-            {props => (
-              <HistoryScreen
-                {...props}
-                sessions={sessions}
-              />
-            )}
+            {(props) => <HistoryScreen {...props} sessions={sessions} />}
           </Tab.Screen>
 
-          <Tab.Screen name="Motivation" component={MotivationScreen} />
+          <Tab.Screen name="Profile">
+            {(props) => <ProfileScreen {...props} sessions={sessions} />}
+          </Tab.Screen>
         </Tab.Navigator>
       </NavigationContainer>
     </PaperProvider>
   );
 }
-
 
 // -------------------- TIMER SCREEN --------------------
 const TimerScreen = ({ sessions, setSessions }) => {
@@ -55,18 +52,22 @@ const TimerScreen = ({ sessions, setSessions }) => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [notesInput, setNotesInput] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
+  const [showQuote, setShowQuote] = useState(false);
   const intervalRef = useRef(null);
 
-  // ⏱ Timer logic
+  const quotes = [
+    "Reading is dreaming with open eyes.",
+    "One page a day changes your life.",
+    "Small progress is still progress.",
+    "Focus builds discipline.",
+  ];
+
   useEffect(() => {
     if (isTimerRunning) {
-      intervalRef.current = setInterval(() => {
-        setElapsed(prev => prev + 1);
-      }, 1000);
+      intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
     } else {
       clearInterval(intervalRef.current);
     }
-
     return () => clearInterval(intervalRef.current);
   }, [isTimerRunning]);
 
@@ -75,7 +76,6 @@ const TimerScreen = ({ sessions, setSessions }) => {
 
   const endSession = () => {
     setIsTimerRunning(false);
-
     if (elapsed === 0) return;
 
     const newSession = {
@@ -85,14 +85,9 @@ const TimerScreen = ({ sessions, setSessions }) => {
       date: new Date().toLocaleDateString(),
     };
 
-    // ✅ Save to shared array
     setSessions([newSession, ...sessions]);
-
-    // Reset
     setElapsed(0);
     setNotesInput("");
-
-    // Show confirmation
     setSavedMessage("Session saved!");
     setTimeout(() => setSavedMessage(""), 3000);
   };
@@ -125,26 +120,43 @@ const TimerScreen = ({ sessions, setSessions }) => {
         </Button>
       </View>
 
-      {savedMessage !== "" && (
-        <Text style={styles.savedText}>{savedMessage}</Text>
+      {savedMessage !== "" && <Text style={styles.savedText}>{savedMessage}</Text>}
+
+      {showQuote && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text>{quotes[Math.floor(Math.random() * quotes.length)]}</Text>
+          </Card.Content>
+        </Card>
       )}
+
+      {/* ✅ FAB for motivational quote */}
+      <FAB
+        icon="lightbulb"
+        style={styles.fab}
+        onPress={() => setShowQuote(!showQuote)}
+      />
     </View>
   );
 };
 
-
 // -------------------- HISTORY SCREEN --------------------
 const HistoryScreen = ({ sessions }) => {
+  const totalSeconds = sessions.reduce((total, session) => total + session.duration, 0);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
   return (
     <View style={styles.container}>
       <Text style={styles.historyTitle}>Session History</Text>
 
+      <Text>Total Time Read: {hours}h {minutes}m</Text>
+
       {sessions.length === 0 ? (
         <Text>No sessions yet.</Text>
       ) : (
-        sessions.map(session => (
+        sessions.map((session) => (
           <Card key={session.id} style={styles.card}>
-            <Card.Title title={`Session: ${session.date}`} />
             <Card.Content>
               <Text>
                 Duration: {Math.floor(session.duration / 60)}:
@@ -161,25 +173,36 @@ const HistoryScreen = ({ sessions }) => {
   );
 };
 
+// -------------------- PROFILE SCREEN --------------------
+const ProfileScreen = ({ sessions }) => {
+  const totalSeconds = sessions.reduce((total, s) => total + s.duration, 0);
+  const totalHours = Math.floor(totalSeconds / 3600);
+  const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
+  const totalSessions = sessions.length;
+  const dailyGoalHours = 1;
+  const progress = Math.min(totalHours / dailyGoalHours, 1);
 
-// -------------------- MOTIVATION SCREEN --------------------
-const MotivationScreen = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.historyTitle}>
-        Motivational Quotes & Book Suggestions
-      </Text>
+      <Avatar.Icon size={100} icon="book" />
+      <Text style={{ fontSize: 22, marginVertical: 10 }}>Reader Profile</Text>
 
       <Card style={styles.card}>
-        <Card.Title title="Quote Example" />
         <Card.Content>
-          <Text>"Reading is dreaming with open eyes."</Text>
+          <Text>Total Time Read: {totalHours}h {totalMinutes}m</Text>
+          <Text>Total Sessions: {totalSessions}</Text>
+        </Card.Content>
+      </Card>
+
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text>Daily Goal: 1 hour</Text>
+          <ProgressBar progress={progress} />
         </Card.Content>
       </Card>
     </View>
   );
 };
-
 
 // -------------------- STYLES --------------------
 const styles = StyleSheet.create({
@@ -187,7 +210,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     alignItems: "center",
-    justifyContent: "flex-start",
   },
   timerText: {
     fontSize: 48,
@@ -221,5 +243,10 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 22,
     marginBottom: 16,
+  },
+  fab: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
   },
 });
