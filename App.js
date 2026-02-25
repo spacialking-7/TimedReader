@@ -15,15 +15,18 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
-// BOOKED TIME App Color Palette
+// -------------------- COLOR PALETTE --------------------
 const colors = {
-  darkGreen: "#06402B",        // Dark green - primary accent, buttons, highlights
-  beige: "#C9C5B1",            // Vanilla bean - cards, backgrounds, soft areas
-  white: "#FAFAFA",             // Alabaster - main background, text highlights
-  black: "#000000",             // Black - primary text where high contrast is needed
-  chocolateBrown: "#713600",   // Chocolate brown - secondary accent, mascot details
+  primary: "#1E88E5",       // Blue for main buttons, headings
+  secondary: "#FFC107",     // Amber for FAB, highlights
+  background: "#F5F5F5",    // Neutral light background
+  card: "#FFFFFF",          // Card background
+  textPrimary: "#212121",   // High contrast text
+  textSecondary: "#616161", // Secondary text
+  buttonText: "#FFFFFF",    // Button text on colored buttons
 };
 
+// -------------------- NAVIGATORS --------------------
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -39,9 +42,13 @@ export default function App() {
         >
           <Drawer.Screen name="Home">
             {() => (
-              <Tab.Navigator>
+              <Tab.Navigator
+                screenOptions={{ tabBarStyle: { backgroundColor: colors.primary } }}
+              >
                 <Tab.Screen name="Timer">
-                  {(props) => <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />}
+                  {(props) => (
+                    <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />
+                  )}
                 </Tab.Screen>
                 <Tab.Screen name="History">
                   {(props) => <HistoryScreen {...props} sessions={sessions} />}
@@ -64,10 +71,16 @@ export default function App() {
 
 // -------------------- CUSTOM APP BAR --------------------
 const CustomAppBar = ({ navigation, back, route }) => (
-  <Appbar.Header>
-    {back ? <Appbar.BackAction onPress={navigation.goBack} /> : null}
-    <Appbar.Content title={route.name} />
-    {!back && <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} />}
+  <Appbar.Header style={{ backgroundColor: colors.primary }}>
+    {back && <Appbar.BackAction onPress={navigation.goBack} color={colors.buttonText} />}
+    <Appbar.Content title={route.name} titleStyle={{ color: colors.buttonText }} />
+    {!back && (
+      <Appbar.Action
+        icon="menu"
+        onPress={() => navigation.openDrawer()}
+        color={colors.buttonText}
+      />
+    )}
   </Appbar.Header>
 );
 
@@ -89,9 +102,7 @@ const TimerScreen = ({ sessions, setSessions }) => {
     "Today’s reading is tomorrow’s wisdom.",
   ];
 
-  // FAB animation
   const fabAnim = useRef(new Animated.Value(0)).current;
-
   const animateFAB = () => {
     Animated.sequence([
       Animated.timing(fabAnim, { toValue: -20, duration: 200, useNativeDriver: true }),
@@ -102,8 +113,9 @@ const TimerScreen = ({ sessions, setSessions }) => {
   useEffect(() => {
     if (isTimerRunning) {
       intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
-    } else clearInterval(intervalRef.current);
-
+    } else {
+      clearInterval(intervalRef.current);
+    }
     return () => clearInterval(intervalRef.current);
   }, [isTimerRunning]);
 
@@ -126,23 +138,48 @@ const TimerScreen = ({ sessions, setSessions }) => {
     setTimeout(() => setSavedMessage(""), 3000);
   };
 
+  const minutes = Math.floor(elapsed / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (elapsed % 60).toString().padStart(2, "0");
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.timerText}>
-        {Math.floor(elapsed / 60)}:{elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}
-      </Text>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.timerText]}>{minutes}:{seconds}</Text>
 
       <TextInput
         placeholder="Add notes..."
+        placeholderTextColor={colors.textSecondary}
         style={styles.input}
         value={notesInput}
         onChangeText={setNotesInput}
       />
 
       <View style={styles.buttonRow}>
-        <Button mode="contained" onPress={startTimer} style={styles.button}>Start</Button>
-        <Button mode="contained" onPress={pauseTimer} style={styles.button}>Pause</Button>
-        <Button mode="contained" onPress={endSession} style={styles.button}>Stop & Save</Button>
+        <Button
+          mode="contained"
+          onPress={startTimer}
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          labelStyle={styles.buttonLabel}
+        >
+          Start
+        </Button>
+        <Button
+          mode="contained"
+          onPress={pauseTimer}
+          style={[styles.button, { backgroundColor: colors.secondary }]}
+          labelStyle={styles.buttonLabel}
+        >
+          Pause
+        </Button>
+        <Button
+          mode="contained"
+          onPress={endSession}
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          labelStyle={styles.buttonLabel}
+        >
+          Stop & Save
+        </Button>
       </View>
 
       {savedMessage ? <Text style={styles.savedText}>{savedMessage}</Text> : null}
@@ -150,13 +187,29 @@ const TimerScreen = ({ sessions, setSessions }) => {
       {showQuote && (
         <Card style={styles.card}>
           <Card.Content>
-            <Text>{quotes[Math.floor(Math.random() * quotes.length)]}</Text>
+            <Text style={{ color: colors.textPrimary, fontStyle: "italic", textAlign: "center" }}>
+              {quotes[Math.floor(Math.random() * quotes.length)]}
+            </Text>
           </Card.Content>
         </Card>
       )}
 
-      <Animated.View style={{ transform: [{ translateY: fabAnim }] }}>
-        <FAB icon="lightbulb" style={styles.fab} onPress={() => { setShowQuote(!showQuote); animateFAB(); }} />
+      <Animated.View
+        style={{
+          position: "absolute",
+          right: 16,
+          bottom: 16,
+          transform: [{ translateY: fabAnim }],
+        }}
+      >
+        <FAB
+          icon="lightbulb"
+          style={{ backgroundColor: colors.secondary }}
+          onPress={() => {
+            setShowQuote(!showQuote);
+            animateFAB();
+          }}
+        />
       </Animated.View>
     </ScrollView>
   );
@@ -164,27 +217,27 @@ const TimerScreen = ({ sessions, setSessions }) => {
 
 // -------------------- HISTORY SCREEN --------------------
 const HistoryScreen = ({ sessions }) => {
-  const totalSeconds = sessions.reduce((total, session) => total + session.duration, 0);
+  const totalSeconds = sessions.reduce((total, s) => total + s.duration, 0);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={styles.historyTitle}>Session History</Text>
       <Text>Total Time Read: {hours}h {minutes}m</Text>
 
       {sessions.length === 0 ? (
-        <Text>No sessions yet.</Text>
+        <Text style={{ color: colors.textSecondary }}>No sessions yet.</Text>
       ) : (
         sessions.map((session) => (
           <Card key={session.id} style={styles.card}>
-            <Card.Title title={`Session: ${session.date}`} />
+            <Card.Title title={`Session: ${session.date}`} titleStyle={styles.cardTitle} />
             <Card.Content>
-              <Text>
+              <Text style={styles.cardContent}>
                 Duration: {Math.floor(session.duration / 60)}:
-                {session.duration % 60 < 10 ? `0${session.duration % 60}` : session.duration % 60}
+                {(session.duration % 60).toString().padStart(2, "0")}
               </Text>
-              <Text>Notes: {session.notes}</Text>
+              <Text style={styles.notesText}>Notes: {session.notes}</Text>
             </Card.Content>
           </Card>
         ))
@@ -199,20 +252,28 @@ const ProfileScreen = ({ sessions }) => {
   const totalHours = Math.floor(totalSeconds / 3600);
   const totalSessions = sessions.length;
 
-  // Streak tracking: assume a session today = +1 day streak
-  const [streak, setStreak] = useState(0);
-  useEffect(() => {
-    const today = new Date().toLocaleDateString();
-    if (sessions[0]?.date === today) setStreak((prev) => prev + 1);
-  }, [sessions]);
+  const calculateStreak = () => {
+    if (!sessions.length) return 0;
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < sessions.length; i++) {
+      const sessionDate = new Date(sessions[i].date);
+      const diffDays = Math.floor((today - sessionDate) / (1000 * 60 * 60 * 24));
+      if (i === 0 && diffDays > 0) break; // no session today
+      if (diffDays === streak) streak++;
+      else break;
+    }
+    return streak;
+  };
+  const streak = calculateStreak();
 
   const dailyGoalHours = 1;
   const progress = Math.min(totalHours / dailyGoalHours, 1);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Avatar.Icon size={100} icon="book" />
-      <Text style={{ fontSize: 22, marginVertical: 10 }}>Reader Profile</Text>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
+      <Avatar.Icon size={100} icon="book" style={{ backgroundColor: colors.primary }} />
+      <Text style={[styles.timerText, { fontSize: 22 }]}>Reader Profile</Text>
       <Text>🔥 Current Streak: {streak} days</Text>
 
       <Card style={styles.card}>
@@ -225,56 +286,25 @@ const ProfileScreen = ({ sessions }) => {
       <Card style={styles.card}>
         <Card.Content>
           <Text>Daily Goal: {dailyGoalHours} hr</Text>
-          <ProgressBar progress={progress} />
+          <ProgressBar progress={progress} color={colors.primary} />
         </Card.Content>
       </Card>
     </ScrollView>
   );
 };
 
-// -------------------- MOTIVATION FAB --------------------
-const MotivationScreen = () => {
-  const quotes = [
-    "Reading is dreaming with open eyes.",
-    "One page a day changes your life.",
-    "Small progress is still progress.",
-    "Focus builds discipline.",
-    "Knowledge is power.",
-    "Today’s reading is tomorrow’s wisdom.",
-  ];
-  const [quoteIndex, setQuoteIndex] = useState(0);
+// -------------------- STUB SCREENS --------------------
+const MotivationScreen = () => (
+  <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <Text style={{ color: colors.primary, fontSize: 18 }}>Motivation Screen</Text>
+  </View>
+);
 
-  return (
-    <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text>{quotes[quoteIndex]}</Text>
-        </Card.Content>
-      </Card>
-      <Button onPress={() => setQuoteIndex(Math.floor(Math.random() * quotes.length))}>
-        New Quote
-      </Button>
-    </View>
-  );
-};
-
-// -------------------- ACHIEVEMENTS SCREEN --------------------
-const AchievementsScreen = ({ sessions }) => {
-  const totalSeconds = sessions.reduce((total, s) => total + s.duration, 0);
-  const totalHours = Math.floor(totalSeconds / 3600);
-  const totalSessions = sessions.length;
-
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={{ fontSize: 22, marginBottom: 16 }}>Achievements</Text>
-      {totalSessions >= 1 && <Text>📖 First Session Completed!</Text>}
-      {totalHours >= 1 && <Text>⏱️ 1 Hour Reading Milestone!</Text>}
-      {totalHours >= 5 && <Text>🏆 5 Hours Reading Milestone!</Text>}
-      {totalHours >= 10 && <Text>🥇 10 Hours Reading Milestone!</Text>}
-      {totalSessions === 0 && <Text>No achievements yet. Start reading!</Text>}
-    </ScrollView>
-  );
-};
+const AchievementsScreen = ({ sessions }) => (
+  <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <Text style={{ color: colors.primary, fontSize: 18 }}>Achievements Screen</Text>
+  </View>
+);
 
 // -------------------- STYLES --------------------
 const styles = StyleSheet.create({
@@ -284,12 +314,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
   },
-  timerText: { fontSize: 48, marginVertical: 32 },
-  buttonRow: { flexDirection: "row", justifyContent: "space-between", width: "100%" },
-  button: { flex: 1, marginHorizontal: 4 },
-  card: { width: "100%", marginVertical: 8 },
-  input: { width: "100%", borderColor: "#ccc", borderWidth: 1, padding: 8, marginBottom: 16, borderRadius: 8 },
-  savedText: { color: "green", marginTop: 16 },
-  historyTitle: { fontSize: 22, marginBottom: 16 },
-  fab: { position: "absolute", right: 16, bottom: -100, backgroundColor: "#713600)" },
+  timerText: {
+    fontSize: 56,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginVertical: 32,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginVertical: 12,
+  },
+  button: { flex: 1, marginHorizontal: 4, borderRadius: 8 },
+  buttonLabel: { color: colors.buttonText, fontWeight: "600" },
+  card: {
+    width: "100%",
+    marginVertical: 8,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    elevation: 2,
+  },
+  cardTitle: { color: colors.textPrimary, fontWeight: "600" },
+  cardContent: { color: colors.textPrimary },
+  notesText: { color: colors.textPrimary },
+  input: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: colors.primary,
+    padding: 12,
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    color: colors.textPrimary,
+  },
+  savedText: {
+    marginTop: 16,
+    color: colors.secondary,
+    fontWeight: "500",
+  },
+  historyTitle: {
+    fontSize: 22,
+    marginBottom: 16,
+    color: colors.primary,
+    fontWeight: "600",
+  },
 });
