@@ -1,10 +1,9 @@
 // App.js
 import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, TextInput, ScrollView, Animated } from "react-native";
+import { View, StyleSheet, TextInput, ScrollView, Animated, Pressable } from "react-native";
 import {
   Provider as PaperProvider,
   Text,
-  Button,
   Card,
   FAB,
   Avatar,
@@ -17,13 +16,13 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 // -------------------- COLOR PALETTE --------------------
 const colors = {
-  primary: "#1E88E5",       // Blue for main buttons, headings
-  secondary: "#FFC107",     // Amber for FAB, highlights
-  background: "#F5F5F5",    // Neutral light background
-  card: "#FFFFFF",          // Card background
-  textPrimary: "#212121",   // High contrast text
-  textSecondary: "#616161", // Secondary text
-  buttonText: "#FFFFFF",    // Button text on colored buttons
+  primary: "#1E88E5",
+  secondary: "#FFC107",
+  background: "#F5F5F5",
+  card: "#FFFFFF",
+  textPrimary: "#212121",
+  textSecondary: "#616161",
+  buttonText: "#FFFFFF",
 };
 
 // -------------------- NAVIGATORS --------------------
@@ -37,18 +36,12 @@ export default function App() {
   return (
     <PaperProvider>
       <NavigationContainer>
-        <Drawer.Navigator
-          screenOptions={{ header: (props) => <CustomAppBar {...props} /> }}
-        >
+        <Drawer.Navigator screenOptions={{ header: (props) => <CustomAppBar {...props} /> }}>
           <Drawer.Screen name="Home">
             {() => (
-              <Tab.Navigator
-                screenOptions={{ tabBarStyle: { backgroundColor: colors.primary } }}
-              >
+              <Tab.Navigator screenOptions={{ tabBarStyle: { backgroundColor: colors.primary } }}>
                 <Tab.Screen name="Timer">
-                  {(props) => (
-                    <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />
-                  )}
+                  {(props) => <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />}
                 </Tab.Screen>
                 <Tab.Screen name="History">
                   {(props) => <HistoryScreen {...props} sessions={sessions} />}
@@ -74,13 +67,7 @@ const CustomAppBar = ({ navigation, back, route }) => (
   <Appbar.Header style={{ backgroundColor: colors.primary }}>
     {back && <Appbar.BackAction onPress={navigation.goBack} color={colors.buttonText} />}
     <Appbar.Content title={route.name} titleStyle={{ color: colors.buttonText }} />
-    {!back && (
-      <Appbar.Action
-        icon="menu"
-        onPress={() => navigation.openDrawer()}
-        color={colors.buttonText}
-      />
-    )}
+    {!back && <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} color={colors.buttonText} />}
   </Appbar.Header>
 );
 
@@ -102,6 +89,7 @@ const TimerScreen = ({ sessions, setSessions }) => {
     "Today’s reading is tomorrow’s wisdom.",
   ];
 
+  // --- FAB animation ---
   const fabAnim = useRef(new Animated.Value(0)).current;
   const animateFAB = () => {
     Animated.sequence([
@@ -113,9 +101,7 @@ const TimerScreen = ({ sessions, setSessions }) => {
   useEffect(() => {
     if (isTimerRunning) {
       intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
-    } else {
-      clearInterval(intervalRef.current);
-    }
+    } else clearInterval(intervalRef.current);
     return () => clearInterval(intervalRef.current);
   }, [isTimerRunning]);
 
@@ -138,9 +124,7 @@ const TimerScreen = ({ sessions, setSessions }) => {
     setTimeout(() => setSavedMessage(""), 3000);
   };
 
-  const minutes = Math.floor(elapsed / 60)
-    .toString()
-    .padStart(2, "0");
+  const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
   const seconds = (elapsed % 60).toString().padStart(2, "0");
 
   return (
@@ -156,59 +140,44 @@ const TimerScreen = ({ sessions, setSessions }) => {
       />
 
       <View style={styles.buttonRow}>
-        <Button
-          mode="contained"
-          onPress={startTimer}
-          style={[styles.button, { backgroundColor: colors.primary }]}
-          labelStyle={styles.buttonLabel}
-        >
-          Start
-        </Button>
-        <Button
-          mode="contained"
-          onPress={pauseTimer}
-          style={[styles.button, { backgroundColor: colors.secondary }]}
-          labelStyle={styles.buttonLabel}
-        >
-          Pause
-        </Button>
-        <Button
-          mode="contained"
-          onPress={endSession}
-          style={[styles.button, { backgroundColor: colors.primary }]}
-          labelStyle={styles.buttonLabel}
-        >
-          Stop & Save
-        </Button>
+        {["Start", "Pause", "Stop & Save"].map((label, idx) => {
+          const bgColor = label === "Pause" ? colors.secondary : colors.primary;
+          const action = label === "Start" ? startTimer : label === "Pause" ? pauseTimer : endSession;
+          return (
+            <Pressable key={label} onPress={action} style={({ pressed }) => [
+              styles.button,
+              { backgroundColor: bgColor, transform: [{ scale: pressed ? 0.95 : 1 }] }
+            ]}>
+              <Text style={styles.buttonLabel}>{label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {savedMessage ? <Text style={styles.savedText}>{savedMessage}</Text> : null}
 
       {showQuote && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={{ color: colors.textPrimary, fontStyle: "italic", textAlign: "center" }}>
-              {quotes[Math.floor(Math.random() * quotes.length)]}
-            </Text>
-          </Card.Content>
-        </Card>
+        <Animated.View style={{ opacity: fabAnim.interpolate({ inputRange: [-20,0], outputRange: [0,1] }) }}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={{ color: colors.textPrimary, fontStyle: "italic", textAlign: "center" }}>
+                {quotes[Math.floor(Math.random() * quotes.length)]}
+              </Text>
+            </Card.Content>
+          </Card>
+        </Animated.View>
       )}
 
-      <Animated.View
-        style={{
-          position: "absolute",
-          right: 16,
-          bottom: 16,
-          transform: [{ translateY: fabAnim }],
-        }}
-      >
+      <Animated.View style={{
+        position: "absolute",
+        right: 16,
+        bottom: 16,
+        transform: [{ translateY: fabAnim }],
+      }}>
         <FAB
           icon="lightbulb"
           style={{ backgroundColor: colors.secondary }}
-          onPress={() => {
-            setShowQuote(!showQuote);
-            animateFAB();
-          }}
+          onPress={() => { setShowQuote(!showQuote); animateFAB(); }}
         />
       </Animated.View>
     </ScrollView>
@@ -229,18 +198,24 @@ const HistoryScreen = ({ sessions }) => {
       {sessions.length === 0 ? (
         <Text style={{ color: colors.textSecondary }}>No sessions yet.</Text>
       ) : (
-        sessions.map((session) => (
-          <Card key={session.id} style={styles.card}>
-            <Card.Title title={`Session: ${session.date}`} titleStyle={styles.cardTitle} />
-            <Card.Content>
-              <Text style={styles.cardContent}>
-                Duration: {Math.floor(session.duration / 60)}:
-                {(session.duration % 60).toString().padStart(2, "0")}
-              </Text>
-              <Text style={styles.notesText}>Notes: {session.notes}</Text>
-            </Card.Content>
-          </Card>
-        ))
+        sessions.map((session) => {
+          const fadeAnim = new Animated.Value(0);
+          useEffect(() => { Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start(); }, []);
+          return (
+            <Animated.View key={session.id} style={{ opacity: fadeAnim, width: "100%" }}>
+              <Card style={styles.card}>
+                <Card.Title title={`Session: ${session.date}`} titleStyle={styles.cardTitle} />
+                <Card.Content>
+                  <Text style={styles.cardContent}>
+                    Duration: {Math.floor(session.duration / 60)}:
+                    {(session.duration % 60).toString().padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.notesText}>Notes: {session.notes}</Text>
+                </Card.Content>
+              </Card>
+            </Animated.View>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -259,7 +234,7 @@ const ProfileScreen = ({ sessions }) => {
     for (let i = 0; i < sessions.length; i++) {
       const sessionDate = new Date(sessions[i].date);
       const diffDays = Math.floor((today - sessionDate) / (1000 * 60 * 60 * 24));
-      if (i === 0 && diffDays > 0) break; // no session today
+      if (i === 0 && diffDays > 0) break;
       if (diffDays === streak) streak++;
       else break;
     }
@@ -308,55 +283,16 @@ const AchievementsScreen = ({ sessions }) => (
 
 // -------------------- STYLES --------------------
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "flex-start",
-  },
-  timerText: {
-    fontSize: 56,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginVertical: 32,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginVertical: 12,
-  },
-  button: { flex: 1, marginHorizontal: 4, borderRadius: 8 },
+  container: { flexGrow: 1, padding: 16, alignItems: "center", justifyContent: "flex-start" },
+  timerText: { fontSize: 56, fontWeight: "700", color: colors.textPrimary, marginVertical: 32 },
+  buttonRow: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginVertical: 12 },
+  button: { flex: 1, marginHorizontal: 4, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingVertical: 10 },
   buttonLabel: { color: colors.buttonText, fontWeight: "600" },
-  card: {
-    width: "100%",
-    marginVertical: 8,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    elevation: 2,
-  },
+  card: { width: "100%", marginVertical: 8, borderRadius: 12, backgroundColor: colors.card, elevation: 2 },
   cardTitle: { color: colors.textPrimary, fontWeight: "600" },
   cardContent: { color: colors.textPrimary },
   notesText: { color: colors.textPrimary },
-  input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: colors.primary,
-    padding: 12,
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    color: colors.textPrimary,
-  },
-  savedText: {
-    marginTop: 16,
-    color: colors.secondary,
-    fontWeight: "500",
-  },
-  historyTitle: {
-    fontSize: 22,
-    marginBottom: 16,
-    color: colors.primary,
-    fontWeight: "600",
-  },
+  input: { width: "100%", borderWidth: 1, borderColor: colors.primary, padding: 12, marginBottom: 16, borderRadius: 8, backgroundColor: "#fff", color: colors.textPrimary },
+  savedText: { marginTop: 16, color: colors.secondary, fontWeight: "500" },
+  historyTitle: { fontSize: 22, marginBottom: 16, color: colors.primary, fontWeight: "600" },
 });
