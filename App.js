@@ -1,6 +1,6 @@
 // App.js
 import React, { useState, useEffect, useRef } from "react";
-import { View, StyleSheet, TextInput } from "react-native";
+import { View, StyleSheet, TextInput, ScrollView } from "react-native";
 import {
   Provider as PaperProvider,
   Text,
@@ -9,11 +9,12 @@ import {
   FAB,
   Avatar,
   ProgressBar,
+  Appbar,
 } from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createDrawerNavigator } from "@react-navigation/drawer";
 
-const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
 
 // -------------------- MAIN APP --------------------
 export default function App() {
@@ -22,29 +23,41 @@ export default function App() {
   return (
     <PaperProvider>
       <NavigationContainer>
-        <Tab.Navigator>
-          <Tab.Screen name="Timer">
-            {(props) => (
-              <TimerScreen
-                {...props}
-                sessions={sessions}
-                setSessions={setSessions}
-              />
-            )}
-          </Tab.Screen>
+        <Drawer.Navigator
+          screenOptions={{
+            header: (props) => <CustomAppBar {...props} />,
+          }}
+        >
+          <Drawer.Screen name="Timer">
+            {(props) => <TimerScreen {...props} sessions={sessions} setSessions={setSessions} />}
+          </Drawer.Screen>
 
-          <Tab.Screen name="History">
+          <Drawer.Screen name="History">
             {(props) => <HistoryScreen {...props} sessions={sessions} />}
-          </Tab.Screen>
+          </Drawer.Screen>
 
-          <Tab.Screen name="Profile">
+          <Drawer.Screen name="Profile">
             {(props) => <ProfileScreen {...props} sessions={sessions} />}
-          </Tab.Screen>
-        </Tab.Navigator>
+          </Drawer.Screen>
+
+          <Drawer.Screen name="Motivation" component={MotivationScreen} />
+          <Drawer.Screen name="Achievements" component={AchievementsScreen} />
+        </Drawer.Navigator>
       </NavigationContainer>
     </PaperProvider>
   );
 }
+
+// -------------------- CUSTOM APP BAR --------------------
+const CustomAppBar = ({ navigation, back, route, options }) => {
+  return (
+    <Appbar.Header>
+      {back ? <Appbar.BackAction onPress={navigation.goBack} /> : null}
+      <Appbar.Content title={route.name} />
+      {!back && <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} />}
+    </Appbar.Header>
+  );
+};
 
 // -------------------- TIMER SCREEN --------------------
 const TimerScreen = ({ sessions, setSessions }) => {
@@ -60,20 +73,20 @@ const TimerScreen = ({ sessions, setSessions }) => {
     "One page a day changes your life.",
     "Small progress is still progress.",
     "Focus builds discipline.",
+    "Knowledge is power.",
+    "Today’s reading is tomorrow’s wisdom.",
   ];
 
   useEffect(() => {
     if (isTimerRunning) {
       intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
-    } else {
-      clearInterval(intervalRef.current);
-    }
+    } else clearInterval(intervalRef.current);
+
     return () => clearInterval(intervalRef.current);
   }, [isTimerRunning]);
 
   const startTimer = () => setIsTimerRunning(true);
   const pauseTimer = () => setIsTimerRunning(false);
-
   const endSession = () => {
     setIsTimerRunning(false);
     if (elapsed === 0) return;
@@ -93,10 +106,9 @@ const TimerScreen = ({ sessions, setSessions }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.timerText}>
-        {Math.floor(elapsed / 60)}:
-        {elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}
+        {Math.floor(elapsed / 60)}:{elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}
       </Text>
 
       <TextInput
@@ -110,17 +122,15 @@ const TimerScreen = ({ sessions, setSessions }) => {
         <Button mode="contained" onPress={startTimer} style={styles.button}>
           Start
         </Button>
-
         <Button mode="contained" onPress={pauseTimer} style={styles.button}>
           Pause
         </Button>
-
         <Button mode="contained" onPress={endSession} style={styles.button}>
           Stop & Save
         </Button>
       </View>
 
-      {savedMessage !== "" && <Text style={styles.savedText}>{savedMessage}</Text>}
+      {savedMessage ? <Text style={styles.savedText}>{savedMessage}</Text> : null}
 
       {showQuote && (
         <Card style={styles.card}>
@@ -130,13 +140,8 @@ const TimerScreen = ({ sessions, setSessions }) => {
         </Card>
       )}
 
-      {/* ✅ FAB for motivational quote */}
-      <FAB
-        icon="lightbulb"
-        style={styles.fab}
-        onPress={() => setShowQuote(!showQuote)}
-      />
-    </View>
+      <FAB icon="lightbulb" style={styles.fab} onPress={() => setShowQuote(!showQuote)} />
+    </ScrollView>
   );
 };
 
@@ -147,9 +152,8 @@ const HistoryScreen = ({ sessions }) => {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.historyTitle}>Session History</Text>
-
       <Text>Total Time Read: {hours}h {minutes}m</Text>
 
       {sessions.length === 0 ? (
@@ -157,19 +161,18 @@ const HistoryScreen = ({ sessions }) => {
       ) : (
         sessions.map((session) => (
           <Card key={session.id} style={styles.card}>
+            <Card.Title title={`Session: ${session.date}`} />
             <Card.Content>
               <Text>
                 Duration: {Math.floor(session.duration / 60)}:
-                {session.duration % 60 < 10
-                  ? `0${session.duration % 60}`
-                  : session.duration % 60}
+                {session.duration % 60 < 10 ? `0${session.duration % 60}` : session.duration % 60}
               </Text>
               <Text>Notes: {session.notes}</Text>
             </Card.Content>
           </Card>
         ))
       )}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -177,39 +180,83 @@ const HistoryScreen = ({ sessions }) => {
 const ProfileScreen = ({ sessions }) => {
   const totalSeconds = sessions.reduce((total, s) => total + s.duration, 0);
   const totalHours = Math.floor(totalSeconds / 3600);
-  const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
   const totalSessions = sessions.length;
   const dailyGoalHours = 1;
   const progress = Math.min(totalHours / dailyGoalHours, 1);
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Avatar.Icon size={100} icon="book" />
       <Text style={{ fontSize: 22, marginVertical: 10 }}>Reader Profile</Text>
 
       <Card style={styles.card}>
         <Card.Content>
-          <Text>Total Time Read: {totalHours}h {totalMinutes}m</Text>
+          <Text>Total Time Read: {totalHours} hrs</Text>
           <Text>Total Sessions: {totalSessions}</Text>
         </Card.Content>
       </Card>
 
       <Card style={styles.card}>
         <Card.Content>
-          <Text>Daily Goal: 1 hour</Text>
+          <Text>Daily Goal: {dailyGoalHours} hr</Text>
           <ProgressBar progress={progress} />
         </Card.Content>
       </Card>
+    </ScrollView>
+  );
+};
+
+// -------------------- MOTIVATION SCREEN --------------------
+const MotivationScreen = () => {
+  const quotes = [
+    "Reading is dreaming with open eyes.",
+    "One page a day changes your life.",
+    "Small progress is still progress.",
+    "Focus builds discipline.",
+    "Knowledge is power.",
+    "Today’s reading is tomorrow’s wisdom.",
+  ];
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  return (
+    <View style={styles.container}>
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text>{quotes[quoteIndex]}</Text>
+        </Card.Content>
+      </Card>
+      <Button onPress={() => setQuoteIndex(Math.floor(Math.random() * quotes.length))}>
+        New Quote
+      </Button>
     </View>
+  );
+};
+
+// -------------------- ACHIEVEMENTS SCREEN --------------------
+const AchievementsScreen = ({ sessions }) => {
+  const totalSeconds = sessions.reduce((total, s) => total + s.duration, 0);
+  const totalHours = Math.floor(totalSeconds / 3600);
+  const totalSessions = sessions.length;
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={{ fontSize: 22, marginBottom: 16 }}>Achievements</Text>
+      {totalSessions >= 1 && <Text>📖 First Session Completed!</Text>}
+      {totalHours >= 1 && <Text>⏱️ 1 Hour Reading Milestone!</Text>}
+      {totalHours >= 5 && <Text>🏆 5 Hours Reading Milestone!</Text>}
+      {totalHours >= 10 && <Text>🥇 10 Hours Reading Milestone!</Text>}
+      {totalSessions === 0 && <Text>No achievements yet. Start reading!</Text>}
+    </ScrollView>
   );
 };
 
 // -------------------- STYLES --------------------
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
     alignItems: "center",
+    justifyContent: "flex-start",
   },
   timerText: {
     fontSize: 48,
