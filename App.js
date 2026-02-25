@@ -66,7 +66,10 @@ export default function App() {
 const CustomAppBar = ({ navigation, back, route }) => (
   <Appbar.Header style={{ backgroundColor: colors.primary }}>
     {back && <Appbar.BackAction onPress={navigation.goBack} color={colors.buttonText} />}
-    <Appbar.Content title={route.name} titleStyle={{ color: colors.buttonText }} />
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: colors.buttonText, fontSize: 20, fontWeight: "700" }}>BOOKED TIME</Text>
+      <Text style={{ color: colors.buttonText, fontSize: 12 }}>Track your reading sessions</Text>
+    </View>
     {!back && <Appbar.Action icon="menu" onPress={() => navigation.openDrawer()} color={colors.buttonText} />}
   </Appbar.Header>
 );
@@ -99,9 +102,8 @@ const TimerScreen = ({ sessions, setSessions }) => {
   };
 
   useEffect(() => {
-    if (isTimerRunning) {
-      intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
-    } else clearInterval(intervalRef.current);
+    if (isTimerRunning) intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
+    else clearInterval(intervalRef.current);
     return () => clearInterval(intervalRef.current);
   }, [isTimerRunning]);
 
@@ -129,7 +131,7 @@ const TimerScreen = ({ sessions, setSessions }) => {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.timerText]}>{minutes}:{seconds}</Text>
+      <Text style={styles.timerText}>{minutes}:{seconds}</Text>
 
       <TextInput
         placeholder="Add notes..."
@@ -140,7 +142,7 @@ const TimerScreen = ({ sessions, setSessions }) => {
       />
 
       <View style={styles.buttonRow}>
-        {["Start", "Pause", "Stop & Save"].map((label, idx) => {
+        {["Start", "Pause", "Stop & Save"].map((label) => {
           const bgColor = label === "Pause" ? colors.secondary : colors.primary;
           const action = label === "Start" ? startTimer : label === "Pause" ? pauseTimer : endSession;
           return (
