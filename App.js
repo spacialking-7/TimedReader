@@ -15,6 +15,15 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
+// BOOKED TIME App Color Palette
+const colors = {
+  darkGreen: "#06402B",        // Dark green - primary accent, buttons, highlights
+  beige: "#C9C5B1",            // Vanilla bean - cards, backgrounds, soft areas
+  white: "#FAFAFA",             // Alabaster - main background, text highlights
+  black: "#000000",             // Black - primary text where high contrast is needed
+  chocolateBrown: "#713600",   // Chocolate brown - secondary accent, mascot details
+};
+
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -282,5 +291,5 @@ const styles = StyleSheet.create({
   input: { width: "100%", borderColor: "#ccc", borderWidth: 1, padding: 8, marginBottom: 16, borderRadius: 8 },
   savedText: { color: "green", marginTop: 16 },
   historyTitle: { fontSize: 22, marginBottom: 16 },
-  fab: { position: "absolute", right: 16, bottom: 16 },
+  fab: { position: "absolute", right: 16, bottom: -100, backgroundColor: "#713600)" },
 });
