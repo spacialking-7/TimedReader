@@ -1,56 +1,91 @@
 // App.js
 import React, { useState, useEffect, useRef } from "react";
 import { View, StyleSheet } from "react-native";
-import { Provider as PaperProvider, Appbar, Text, Button, FAB, Card } from "react-native-paper";
+import {
+  Provider as PaperProvider,
+  Appbar,
+  Text,
+  Button,
+  FAB,
+  Card,
+} from "react-native-paper";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 const Tab = createBottomTabNavigator();
 
 // --- Timer Screen ---
-//is timer running? Yes or no 
-//elapsed = how many seconds have passed since the timer started
-//stores a reference to the interval created by setInterva; so we can pause/play
 const TimerScreen = () => {
+  //an array of reading sessions
+  const [sessions, setSessions] = useState([]);
+  //notes about the session, to be saved with the session data (not implemented yet)
+  const [notesInput, setNotesInput] = useState("");
+
+  //is timer running? Yes or no
+  //elapsed = how many seconds have passed since the timer started
+  //stores a reference to the interval created by setInterva; so we can pause/play
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef(null);
 
-//start timer
+  //start timer
   const startTimer = () => {
     if (isTimerRunning) return;
     setIsTimerRunning(true);
-    intervalRef.current = setInterval(() => setElapsed((prev) => prev + 1), 1000);
+    intervalRef.current = setInterval(
+      () => setElapsed((prev) => prev + 1),
+      1000,
+    );
   };
 
-//pause timer
+  //pause timer
   const pauseTimer = () => {
     setIsTimerRunning(false);
     clearInterval(intervalRef.current);
   };
 
-  //Stop timer = ends session and saves data to history (not implemented yet)
-  const stopTimer=() => {
-    setIsTimerRunning(false);
-    clearInterval(intervalRef.current);
-  };
-  
-    //reset timer
-  const resetTimer = () => {
-    setIsTimerRunning(false);
-    clearInterval(intervalRef.current);
-    setElapsed(0);
-  };
-  
+  //End session
 
-  return (
+  const endSession = () => {
+    //Stop timer
+    setIsTimerRunning(false);
+    clearInterval(intervalRef.current);
+
+    //if the time is reset to 0, don't save a session
+    if (elapsed === 0) return;
+
+    // Create a new session
+    const newSession = {
+      id: Date.now().toString(), // unique ID
+      duration: elapsed, // seconds
+      notes: notesInput, // optional note
+      date: new Date().toLocaleDateString(), // current date
+    };
+
+    // Save session
+    setSessions([newSession, ...sessions]);
+
+    // Reset timer and note input
+    setElapsed(0);
+    setNotesInput("");
+  };
+  
+ return (
     <View style={styles.container}>
-      <Text style={styles.timerText}>{Math.floor(elapsed / 60)}:{elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}</Text>
+      <Text style={styles.timerText}>
+        {Math.floor(elapsed / 60)}:
+        {elapsed % 60 < 10 ? `0${elapsed % 60}` : elapsed % 60}
+      </Text>
       <View style={styles.buttonRow}>
-        <Button mode="contained" onPress={startTimer} style={styles.button}>Start</Button>
-        <Button mode="contained" onPress={pauseTimer} style={styles.button}>Pause</Button>
-        <Button mode="contained" onPress={stopTimer} style={styles.button}>End Session</Button>
-           <Button mode="contained" onPress={resetTimer} style={styles.button}>Reset</Button>
+        <Button mode="contained" onPress={startTimer} style={styles.button}>
+          Start
+        </Button>
+        <Button mode="contained" onPress={pauseTimer} style={styles.button}>
+          Pause
+        </Button>
+        <Button mode="contained" onPress={endSession} style={styles.button}>
+          Stop & Save
+        </Button>
       </View>
     </View>
   );
